@@ -133,7 +133,7 @@ int main(int argc, char* argv[]) {
 				for (int i = 0; i < config_count; ++i) {
 					if (_stricmp(proc_name, configs[i].name) == 0) {
 						set_affinity(pe.th32ProcessID, configs[i].affinity_mask, proc_name);
-						break;
+						goto skip;
 					}
 				}
 				if (find) {
@@ -146,7 +146,6 @@ int main(int argc, char* argv[]) {
 					}
 					if (current_mask == system_mask) {
 						GetLocalTime(&g_system_time);
-
 						if (blk) {
 							bool in_blacklist = false;
 							for (int j = 0; j < blk_count; ++j) {
@@ -165,6 +164,7 @@ int main(int argc, char* argv[]) {
 								    g_system_time.wSecond, (unsigned long)pe.th32ProcessID, proc_name, (unsigned long long)current_mask);
 					}
 				}
+			skip:;
 			} while (Process32NextW(h_snap, &pe));
 		}
 
