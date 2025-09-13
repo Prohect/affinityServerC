@@ -78,7 +78,7 @@ int main(int argc, char* argv[]) {
 	if (!g_logger) {
 		log_message("can't open log file");
 	} else
-		log_message("time interval: %l", g_interval);
+		log_message("time interval: %d", g_interval);
 
 	if (convert) {
 		convert_cfg();
