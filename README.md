@@ -22,8 +22,10 @@ rewrite affnity service using C. more light way
 |------|------|--------|
 | `-affinity <binary>` | 设置本程序自身的 CPU 亲和掩码，二进制字符串 | `0b0000_0000_0000_0000_1111_1111_0000_0000` |
 | `-console <true|false>` | 是否在控制台输出日志 | `true` |
+| `-find <true|false>` | 是否寻找亲和性为系统默认（全核心）的进程 | `true` |
 | `-plfile <file>` | 指定 ProcessLasso 配置文件（DefaultAffinitiesEx=行之后的部分） | `prolasso.ini` |
 | `-outfile <file>` | ProcessLasso 文件转换后的输出文件名 | `config.ini` |
+| `-blacklist <file>` | 指定-find的黑名单 | - |
 | `-convert` | 执行 ProcessLasso 文件转换并退出 | `false` |
 | `-interval <ms>` | 遍历进程的停滞时间间隔（毫秒） | `10000` |
 | `-config <file>` | 指定本程序的配置文件 | `processAffinityServiceConfig.ini` |
