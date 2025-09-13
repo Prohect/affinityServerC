@@ -1,0 +1,6 @@
+BasedOnStyle: Google
+IndentWidth: 8
+BreakBeforeBraces: Attach
+UseTab: Always
+ColumnLimit: 192
+PointerAlignment: Right
