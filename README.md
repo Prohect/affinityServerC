@@ -36,7 +36,7 @@ rewrite affnity service using C. more light way
 
 ## 使用方法
 
-### note:所有命令指定的参数都有默认值，可以以空参数运行该程序
+### note:所有命令指定的参数都有默认值或者不启用，可以直接双击以空参数运行该程序
 
 ### 1. 设置自身亲和
 
