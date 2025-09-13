@@ -1,6 +1,7 @@
 #include <locale.h>
 #include <minwindef.h>
 #include <psapi.h>
+#include <share.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,6 +19,7 @@ const char* g_prolasso_cfg_part_file = "prolasso.ini";
 const char* g_out_file = "config.ini";
 const char* g_cfg_file = "affinityServiceConfig.ini";
 const char* g_blk_file = NULL;
+SYSTEMTIME g_system_time;
 
 typedef struct {
 	char name[260];
@@ -34,17 +36,6 @@ void read_config(IN const char* file_path, OUT ProcessConfig** configs, OUT int*
 void print_help();
 
 int main(int argc, char* argv[]) {
-	// for debug
-
-	argc = 7;
-	argv = (char**)malloc(sizeof(char*) * (argc));
-	argv[1] = "-blacklist";
-	argv[2] = "blacklist.ini";
-	argv[3] = "-find";
-	argv[4] = "true";
-	argv[5] = "-config";
-	argv[6] = "config.ini";
-
 	SetConsoleOutputCP(CP_UTF8);
 	SetConsoleCP(CP_UTF8);
 	setlocale(LC_ALL, ".UTF8");
@@ -81,10 +72,10 @@ int main(int argc, char* argv[]) {
 	// logger init
 	CreateDirectoryA("logs", NULL);
 	char log_file_name[260];
-	SYSTEMTIME st;
-	GetLocalTime(&st);
-	sprintf_s(log_file_name, sizeof(log_file_name), "logs\\%04d%02d%02d.log", st.wYear, st.wMonth, st.wDay);
-	if (fopen_s(&g_logger, log_file_name, "a") != 0) {
+	GetLocalTime(&g_system_time);
+	sprintf_s(log_file_name, sizeof(log_file_name), "logs\\%04d%02d%02d.log", g_system_time.wYear, g_system_time.wMonth, g_system_time.wDay);
+	g_logger = _fsopen(log_file_name, "a", _SH_DENYNO);
+	if (!g_logger) {
 		log_message("can't open log file");
 	}
 
@@ -101,9 +92,7 @@ int main(int argc, char* argv[]) {
 	}
 
 	if (!is_admin()) {
-		log_message(
-		    "not as admin, may not able to set affinity for "
-		    "some process");
+		log_message("not as admin, may not able to set affinity for some process");
 	}
 
 	HANDLE h_current_proc = GetCurrentProcess();
@@ -155,6 +144,8 @@ int main(int argc, char* argv[]) {
 						continue;
 					}
 					if (current_mask == system_mask) {
+						GetLocalTime(&g_system_time);
+
 						if (blk) {
 							bool in_blacklist = false;
 							for (int j = 0; j < blk_count; ++j) {
@@ -166,9 +157,11 @@ int main(int argc, char* argv[]) {
 							if (in_blacklist)
 								continue;
 							else
-								log_message("find PID %lu - %s: %llu", (unsigned long)pe.th32ProcessID, proc_name, (unsigned long long)current_mask);
+								log_message("%02d %02d:%02d:%02d find PID %lu - %s: %llu", g_system_time.wDay, g_system_time.wHour, g_system_time.wMinute,
+									    g_system_time.wSecond, (unsigned long)pe.th32ProcessID, proc_name, (unsigned long long)current_mask);
 						} else
-							log_message("find PID %lu - %s: %llu", (unsigned long)pe.th32ProcessID, proc_name, (unsigned long long)current_mask);
+							log_message("%02d %02d:%02d:%02d find PID %lu - %s: %llu", g_system_time.wDay, g_system_time.wHour, g_system_time.wMinute,
+								    g_system_time.wSecond, (unsigned long)pe.th32ProcessID, proc_name, (unsigned long long)current_mask);
 					}
 				}
 			} while (Process32NextW(h_snap, &pe));
@@ -209,11 +202,9 @@ static void set_affinity(DWORD pid, DWORD_PTR affinity_mask, const char process_
 	if (current_mask != affinity_mask && affinity_mask != NULL) {
 		if (SetProcessAffinityMask(h_proc, affinity_mask)) {
 			char log_msg[512];
-#ifdef _WIN64
-			sprintf_s(log_msg, sizeof(log_msg), "PID %lu - %s: -> %llu", (unsigned long)pid, process_name, (unsigned long long)affinity_mask);
-#else
-			sprintf_s(log_msg, sizeof(log_msg), "PID %lu - %s: -> %lu", (unsigned long)pid, process_name, (unsigned long)affinity_mask);
-#endif
+			GetLocalTime(&g_system_time);
+			sprintf_s(log_msg, sizeof(log_msg), "%02d %02d:%02d:%02d - PID %lu - %s: -> %llu", g_system_time.wDay, g_system_time.wHour, g_system_time.wMinute,
+				  g_system_time.wSecond, (unsigned long)pid, process_name, (unsigned long long)affinity_mask);
 			log_message(log_msg);
 		}
 	}
@@ -252,7 +243,6 @@ void read_config(IN const char* file_path, OUT ProcessConfig** configs, OUT int*
 	*count = 0;
 
 	while (fgets(line, sizeof(line), f_path)) {
-		log_message("read : %s", line);
 		char* newline_pos = strchr(line, '\n');
 		if (newline_pos) *newline_pos = '\0';
 		char* carriage_return_pos = strchr(line, '\r');
