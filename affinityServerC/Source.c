@@ -11,15 +11,17 @@
 FILE* g_logger = NULL;
 bool g_console_out = true;
 bool convert = false;
+bool find = false;
 int g_interval = 10000;
 int g_self_affinity = 0b1111111100000000;
 const char* g_prolasso_cfg_part_file = "prolasso.ini";
 const char* g_out_file = "config.ini";
 const char* g_cfg_file = "affinityServiceConfig.ini";
+const char* g_blk_file = NULL;
 
 typedef struct {
 	char name[260];
-	DWORD affinity_mask;
+	DWORD affinity_mask;  // NULLABLE in read, set affinity checks NULL
 } ProcessConfig;
 
 void log_message(const char* format, ...);
@@ -32,6 +34,17 @@ void read_config(IN const char* file_path, OUT ProcessConfig** configs, OUT int*
 void print_help();
 
 int main(int argc, char* argv[]) {
+	// for debug
+
+	argc = 7;
+	argv = (char**)malloc(sizeof(char*) * (argc));
+	argv[1] = "-blacklist";
+	argv[2] = "blacklist.ini";
+	argv[3] = "-find";
+	argv[4] = "true";
+	argv[5] = "-config";
+	argv[6] = "config.ini";
+
 	SetConsoleOutputCP(CP_UTF8);
 	SetConsoleCP(CP_UTF8);
 	setlocale(LC_ALL, ".UTF8");
@@ -48,10 +61,14 @@ int main(int argc, char* argv[]) {
 			}
 		} else if (strcmp(argv[i], "-console") == 0 && i + 1 < argc) {
 			g_console_out = (strcmp(argv[++i], "true") == 0);
+		} else if (strcmp(argv[i], "-find") == 0 && i + 1 < argc) {
+			find = (strcmp(argv[++i], "true") == 0);
 		} else if (strcmp(argv[i], "-plfile") == 0 && i + 1 < argc) {
 			g_prolasso_cfg_part_file = argv[++i];
 		} else if (strcmp(argv[i], "-out") == 0 && i + 1 < argc) {
 			g_out_file = argv[++i];
+		} else if (strcmp(argv[i], "-blacklist") == 0 && i + 1 < argc) {
+			g_blk_file = argv[++i];
 		} else if (strcmp(argv[i], "-convert") == 0) {
 			convert = true;
 		} else if (strcmp(argv[i], "-interval") == 0 && i + 1 < argc) {
@@ -100,6 +117,10 @@ int main(int argc, char* argv[]) {
 	int config_count = 0;
 	read_config(g_cfg_file, &configs, &config_count);
 
+	ProcessConfig* blk = NULL;
+	int blk_count = 0;
+	if (g_blk_file) read_config(g_blk_file, &blk, &blk_count);
+
 	while (true) {
 		PROCESSENTRY32W pe;
 		pe.dwSize = sizeof(PROCESSENTRY32W);
@@ -123,6 +144,31 @@ int main(int argc, char* argv[]) {
 					if (_stricmp(proc_name, configs[i].name) == 0) {
 						set_affinity(pe.th32ProcessID, configs[i].affinity_mask, proc_name);
 						break;
+					}
+				}
+				if (find) {
+					HANDLE h_proc = OpenProcess(PROCESS_SET_INFORMATION | PROCESS_QUERY_INFORMATION, FALSE, pe.th32ProcessID);
+					if (h_proc == NULL) continue;
+					DWORD_PTR current_mask, system_mask;
+					if (!GetProcessAffinityMask(h_proc, &current_mask, &system_mask)) {
+						CloseHandle(h_proc);
+						continue;
+					}
+					if (current_mask == system_mask) {
+						if (blk) {
+							bool in_blacklist = false;
+							for (int j = 0; j < blk_count; ++j) {
+								if (_stricmp(proc_name, blk[j].name) == 0) {
+									in_blacklist = true;
+									break;
+								}
+							}
+							if (in_blacklist)
+								continue;
+							else
+								log_message("find PID %lu - %s: %llu", (unsigned long)pe.th32ProcessID, proc_name, (unsigned long long)current_mask);
+						} else
+							log_message("find PID %lu - %s: %llu", (unsigned long)pe.th32ProcessID, proc_name, (unsigned long long)current_mask);
 					}
 				}
 			} while (Process32NextW(h_snap, &pe));
@@ -154,14 +200,13 @@ static void set_affinity(DWORD pid, DWORD_PTR affinity_mask, const char process_
 	HANDLE h_proc = OpenProcess(PROCESS_SET_INFORMATION | PROCESS_QUERY_INFORMATION, FALSE, pid);
 	if (h_proc == NULL) return;
 
-	DWORD_PTR current_mask;
-	DWORD_PTR system_mask;
+	DWORD_PTR current_mask, system_mask;
 	if (!GetProcessAffinityMask(h_proc, &current_mask, &system_mask)) {
 		CloseHandle(h_proc);
 		return;
 	}
 
-	if (current_mask != affinity_mask) {
+	if (current_mask != affinity_mask && affinity_mask != NULL) {
 		if (SetProcessAffinityMask(h_proc, affinity_mask)) {
 			char log_msg[512];
 #ifdef _WIN64
@@ -195,7 +240,7 @@ bool is_admin() {
 void read_config(IN const char* file_path, OUT ProcessConfig** configs, OUT int* count) {
 	FILE* f_path;
 	if (fopen_s(&f_path, file_path, "r") != 0) {
-		log_message("cant read config file, trying create one");
+		log_message("cant read file %s, trying create", file_path);
 		fopen_s(&f_path, file_path, "w");
 		if (f_path) fclose(f_path);
 		return;
@@ -207,6 +252,7 @@ void read_config(IN const char* file_path, OUT ProcessConfig** configs, OUT int*
 	*count = 0;
 
 	while (fgets(line, sizeof(line), f_path)) {
+		log_message("read : %s", line);
 		char* newline_pos = strchr(line, '\n');
 		if (newline_pos) *newline_pos = '\0';
 		char* carriage_return_pos = strchr(line, '\r');
@@ -220,8 +266,9 @@ void read_config(IN const char* file_path, OUT ProcessConfig** configs, OUT int*
 		char* name = strtok_s(line, ",", &context);
 		char* affinity_str = strtok_s(NULL, ",", &context);
 
-		if (name && affinity_str) {
-			DWORD affinity = atoll(affinity_str);
+		if (name) {
+			DWORD affinity = NULL;
+			if (affinity_str) affinity = atoll(affinity_str);
 			if (*count >= capacity) {
 				capacity *= 2;
 				*configs = (ProcessConfig*)realloc(*configs, capacity * sizeof(ProcessConfig));
@@ -355,9 +402,11 @@ void print_help() {
 	printf("Options:\n");
 	printf("  -affinity <binary>    affinity for itselt (eg. 0b1111_0000)\n");
 	printf("  -console <true|false> use console ouput?\n");
+	printf("  -find <true|false>    find process with unset or default affinity?\n");
 	printf("  -plfile <file>        file contains single line string behind ProcessLasso's ini's DefaultAffinitiesEx= (eg. prolasso.ini)\n");
 	printf("                        eg. ?steamwebhelper.exe,0,8-19,everything.exe,0,8-19\n");
 	printf("  -out <file>           output for convert (default config.ini)\n");
+	printf("  -blacklist <file>     blacklist for find (default not work)\n");
 	printf("  -convert              convert ProcessLasso's ini's part to pattern that this would use\n");
 	printf("  -interval <ms>        time interval for checking all process again (ms, default 10000)\n");
 	printf("  -config <file>        config file(default affinityServiceConfig.ini)\n");
