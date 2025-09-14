@@ -105,7 +105,7 @@ steamwebhelper.exe,254
 everything.exe,65535
 ```
 
-> CPU 亲和掩码是 int32，二进制表示核心，例如 254 对应 cores 1-7。
+> CPU 亲和掩码是 int64，二进制表示核心，例如 254 对应 cores 1-7。
 
 ---
 
