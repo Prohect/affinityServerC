@@ -140,29 +140,22 @@ int main(int argc, char* argv[]) {
 					HANDLE h_proc = OpenProcess(PROCESS_SET_INFORMATION | PROCESS_QUERY_INFORMATION, FALSE, pe.th32ProcessID);
 					if (h_proc == NULL) continue;
 					DWORD_PTR current_mask, system_mask;
-					if (!GetProcessAffinityMask(h_proc, &current_mask, &system_mask)) {
-						CloseHandle(h_proc);
-						continue;
-					}
-					if (current_mask == system_mask) {
-						GetLocalTime(&g_system_time);
-						if (blk) {
-							bool in_blacklist = false;
-							for (int j = 0; j < blk_count; ++j) {
-								if (_stricmp(proc_name, blk[j].name) == 0) {
-									in_blacklist = true;
-									break;
-								}
-							}
-							if (in_blacklist)
-								continue;
-							else
+					if (GetProcessAffinityMask(h_proc, &current_mask, &system_mask)) {
+						if (current_mask == system_mask) {
+							GetLocalTime(&g_system_time);
+							if (blk) {
+								for (int j = 0; j < blk_count; ++j)
+									if (_stricmp(proc_name, blk[j].name) == 0) goto skip_log;
 								log_message("%02d %02d:%02d:%02d find PID %lu - %s: %llu", g_system_time.wDay, g_system_time.wHour, g_system_time.wMinute,
 									    g_system_time.wSecond, (unsigned long)pe.th32ProcessID, proc_name, (unsigned long long)current_mask);
-						} else
-							log_message("%02d %02d:%02d:%02d find PID %lu - %s: %llu", g_system_time.wDay, g_system_time.wHour, g_system_time.wMinute,
-								    g_system_time.wSecond, (unsigned long)pe.th32ProcessID, proc_name, (unsigned long long)current_mask);
+							skip_log:;
+							} else {
+								log_message("%02d %02d:%02d:%02d find PID %lu - %s: %llu", g_system_time.wDay, g_system_time.wHour, g_system_time.wMinute,
+									    g_system_time.wSecond, (unsigned long)pe.th32ProcessID, proc_name, (unsigned long long)current_mask);
+							}
+						}
 					}
+					CloseHandle(h_proc);
 				}
 			skip:;
 			} while (Process32NextW(h_snap, &pe));
