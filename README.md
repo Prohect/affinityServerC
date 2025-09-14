@@ -21,7 +21,7 @@ rewrite affnity service using C. more light way
 
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
-| `-affinity <binary>` | 设置本程序自身的 CPU 亲和掩码，二进制字符串 | `0b0000_0000_0000_0000_1111_1111_0000_0000` |
+| `-affinity <binary>` | 设置本程序自身的 CPU 亲和掩码，二进制字符串 | `0b00000000000000001111111100000000` |
 | `-console` | 在控制台输出日志而非文件, 不需要额外参数 | - |
 | `-find` | 寻找亲和性为系统默认（全核心）的进程, 不需要额外参数 | - |
 | `-plfile <file>` | 指定 ProcessLasso 配置文件（DefaultAffinitiesEx=行之后的部分） | `prolasso.ini` |
