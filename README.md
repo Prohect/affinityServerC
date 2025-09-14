@@ -27,7 +27,7 @@ rewrite affnity service using C. more light way
 | `-plfile <file>` | 指定 ProcessLasso 配置文件（DefaultAffinitiesEx=行之后的部分） | `prolasso.ini` |
 | `-outfile <file>` | ProcessLasso 文件转换后的输出文件名 | `config.ini` |
 | `-blacklist <file>` | 指定-find的黑名单 | - |
-| `-convert` | 执行 ProcessLasso 文件转换并退出 | `false` |
+| `-convert` | 执行 ProcessLasso 文件转换并退出, 不需要额外参数 | - |
 | `-interval <ms>` | 遍历进程的停滞时间间隔（毫秒） | `10000` |
 | `-config <file>` | 指定本程序的配置文件 | `processAffinityServiceConfig.ini` |
 | `-help` / `--help` / `/?` | 输出帮助信息 | - |
