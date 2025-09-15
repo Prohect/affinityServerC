@@ -21,13 +21,13 @@ rewrite affnity service using C. more light way
 
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
-| `-affinity <binary>` | 设置本程序自身的 CPU 亲和掩码，二进制字符串 | `0b0000_0000_0000_0000_1111_1111_0000_0000` |
-| `-console <true|false>` | 是否在控制台输出日志 | `true` |
-| `-find <true|false>` | 是否寻找亲和性为系统默认（全核心）的进程 | `true` |
+| `-affinity <binary>` | 设置本程序自身的 CPU 亲和掩码，二进制字符串，eg.`0b00001111111100000000` | `0` |
+| `-console` | 在控制台输出日志而非文件, 不需要额外参数 | - |
+| `-find` | 寻找亲和性为系统默认（全核心）的进程, 不需要额外参数 | - |
 | `-plfile <file>` | 指定 ProcessLasso 配置文件（DefaultAffinitiesEx=行之后的部分） | `prolasso.ini` |
 | `-outfile <file>` | ProcessLasso 文件转换后的输出文件名 | `config.ini` |
 | `-blacklist <file>` | 指定-find的黑名单 | - |
-| `-convert` | 执行 ProcessLasso 文件转换并退出 | `false` |
+| `-convert` | 执行 ProcessLasso 文件转换并退出, 不需要额外参数 | - |
 | `-interval <ms>` | 遍历进程的停滞时间间隔（毫秒） | `10000` |
 | `-config <file>` | 指定本程序的配置文件 | `processAffinityServiceConfig.ini` |
 | `-help` / `--help` / `/?` | 输出帮助信息 | - |
@@ -51,11 +51,11 @@ affinityService.exe -affinity 0b0000_0000_0000_0000_1111_1111_0000_0000
 ### 2. 设置遍历进程的间隔和日志输出
 
 ```bash
-affinityService.exe -interval 5000 -console false
+affinityService.exe -interval 5000 -console
 ```
 
 * 每 5000 毫秒遍历一次进程
-* 不在控制台输出日志（仅写入 logs 文件夹）
+* 在控制台输出日志（不写入 logs 文件夹）
 
 ---
 
@@ -92,7 +92,7 @@ affinityService.exe -config processAffinityServiceConfig.ini
 ## 日志文件
 
 * 默认输出到 `logs\YYYYMMDD.log`
-* 同时可选择输出到控制台（`-console true/false`）
+* 选择输出到控制台（`-console`）时不输出到 `logs\YYYYMMDD.log`
 
 ---
 
@@ -105,7 +105,7 @@ steamwebhelper.exe,254
 everything.exe,65535
 ```
 
-> CPU 亲和掩码是 int32，二进制表示核心，例如 254 对应 cores 1-7。
+> CPU 亲和掩码是 int64，二进制表示核心，例如 254 对应 cores 1-7。
 
 ---
 
