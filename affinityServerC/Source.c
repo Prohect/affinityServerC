@@ -36,8 +36,8 @@ int read_config(IN const char *file_path, OUT ProcessConfig **configs, OUT int *
 int print_help();
 
 int main(int argc, char *argv[]) {
-	 //argc = 2;
-	 //argv[1] = "-convert";
+	// argc = 2;
+	// argv[1] = "-convert";
 	SetConsoleOutputCP(CP_UTF8);
 	SetConsoleCP(CP_UTF8);
 	setlocale(LC_ALL, ".UTF8");
@@ -65,6 +65,7 @@ int main(int argc, char *argv[]) {
 			g_cfg_file = argv[++i];
 		}
 	}
+	if (g_interval < 16) g_interval = 16;
 	if (g_convert_mode) return convert_cfg(); // convert or service mode
 	if (!g_console_out) {			  // logger's file output stream
 		CreateDirectoryA("logs", NULL);
@@ -318,7 +319,7 @@ void cfg_from_prolasso(IN const char *file_path, OUT ProcessConfig **configs, OU
 int print_help() {
 	printf("Usage: affinityService [options]\n");
 	printf("Options:\n");
-	printf("  -affinity <integer>    affinity for itselt (eg. 0b11110000 or 0xFFFF or 254)\n");
+	printf("  -affinity <integer>   affinity for itselt (eg. 0b11110000 or 0xFFFF or 254)\n");
 	printf("  -find                 find process with unset or default affinity?\n");
 	printf("  -console              use console ouput?\n");
 	printf("  -config <file>        config file(default config.ini)\n");
