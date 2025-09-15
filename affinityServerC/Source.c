@@ -261,7 +261,7 @@ int convert_cfg() {
 			fclose(convert_out_file_stream);
 			log_message("convert done.");
 		} else
-			log_message("can't create, %s may be a diretory?", g_convert_in_file);
+			log_message("can't create, %s may be a diretory?", g_convert_out_file);
 	} else
 		log_message("can't convert, %s may not exist.", g_convert_in_file);
 	return 0;
