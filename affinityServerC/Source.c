@@ -326,7 +326,7 @@ int print_help() {
 	printf("  -convert              convert ProcessLasso's ini's part to pattern that this would use\n");
 	printf("  -blacklist <file>     blacklist for find (default not work)\n");
 	printf("  -plfile <file>        UTF8 file contains single line string from behind prolasso's DefaultAffinitiesEx=\n");
-	printf("                        eg. ?steamwebhelper.exe,0,8-19,everything.exe,0,8-19\n");
+	printf("                        eg. steamwebhelper.exe,0,8-19,everything.exe,0,8-19\n");
 	printf("  -out <file>           output for convert (default output.ini)\n");
 	return 0;
 }
