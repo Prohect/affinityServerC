@@ -119,7 +119,6 @@ int main(int argc, char *argv[]) {
 								unsigned long long current_mask, system_mask;
 								if (GetProcessAffinityMask(h_proc, &current_mask, &system_mask)) {
 									if (current_mask == system_mask) {
-										GetLocalTime(&g_time);
 										if (blk_count)
 											for (int j = 0; j < blk_count; ++j)
 												if (_stricmp(proc_name, blk[j].name) == 0) goto skip_log;
@@ -140,6 +139,7 @@ int main(int argc, char *argv[]) {
 		CloseHandle(processes_snapshot);
 		if (g_logger) fflush(g_logger);
 		Sleep(g_interval);
+		GetLocalTime(&g_time);
 	}
 	return 0;
 }
@@ -163,7 +163,6 @@ void set_affinity(unsigned long pid, unsigned long long affinity_mask, const cha
 		if (GetProcessAffinityMask(h_proc, &current_mask, &system_mask)) {
 			if (affinity_mask && current_mask != affinity_mask) {
 				if (SetProcessAffinityMask(h_proc, affinity_mask)) {
-					GetLocalTime(&g_time);
 					char log_msg[8192];
 					sprintf_s(log_msg, sizeof(log_msg), "%02d %02d:%02d:%02d - PID %lu - %s: -> %llu", g_time.wDay, g_time.wHour, g_time.wMinute, g_time.wSecond, pid, process_name, affinity_mask);
 					log_message(log_msg);
