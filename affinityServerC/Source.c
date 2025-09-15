@@ -17,7 +17,7 @@ int g_interval = 10000;
 unsigned long long g_self_affinity = 0;
 const char *g_convert_in_file = "prolasso.ini";
 const char *g_convert_out_file = "output.ini";
-const char *g_cfg_file = "affinityServiceConfig.ini";
+const char *g_cfg_file = "config.ini";
 const char *g_blk_file = NULL;
 SYSTEMTIME g_time;
 
@@ -36,8 +36,8 @@ int read_config(IN const char *file_path, OUT ProcessConfig **configs, OUT int *
 int print_help();
 
 int main(int argc, char *argv[]) {
-	// argc = 2;
-	// argv[1] = "-convert";
+	 //argc = 2;
+	 //argv[1] = "-convert";
 	SetConsoleOutputCP(CP_UTF8);
 	SetConsoleCP(CP_UTF8);
 	setlocale(LC_ALL, ".UTF8");
@@ -211,7 +211,7 @@ int read_config(IN const char *file_path, OUT ProcessConfig **configs, OUT int *
 					*configs = temp;
 				}
 				strcpy_s((*configs)[*count].name, sizeof((*configs)[*count].name), name);
-				(*configs)[((*count)++)].affinity_mask = affinity;
+				(*configs)[(*count)++].affinity_mask = affinity;
 			}
 		}
 		fclose(f_path);
@@ -297,7 +297,7 @@ void cfg_from_prolasso(IN const char *file_path, OUT ProcessConfig **configs, OU
 						if (token == NULL) break;
 						token = strtok_s(NULL, ",", &context); // core range
 						if (token == NULL) break;
-						(*configs)[((*count)++)].affinity_mask = parse_affinity_range(token);
+						(*configs)[(*count)++].affinity_mask = parse_affinity_range(token);
 						token = strtok_s(NULL, ",", &context);
 					}
 				}
@@ -321,12 +321,12 @@ int print_help() {
 	printf("  -affinity <integer>    affinity for itselt (eg. 0b11110000 or 0xFFFF or 254)\n");
 	printf("  -find                 find process with unset or default affinity?\n");
 	printf("  -console              use console ouput?\n");
-	printf("  -convert              convert ProcessLasso's ini's part to pattern that this would use\n");
-	printf("  -plfile <file>        file contains single line string behind ProcessLasso's ini's DefaultAffinitiesEx= (eg. prolasso.ini)\n");
-	printf("                        eg. ?steamwebhelper.exe,0,8-19,everything.exe,0,8-19\n");
-	printf("  -out <file>           output for convert (default config.ini)\n");
-	printf("  -blacklist <file>     blacklist for find (default not work)\n");
+	printf("  -config <file>        config file(default config.ini)\n");
 	printf("  -interval <ms>        time interval for checking all process again (ms, default 10000)\n");
-	printf("  -config <file>        config file(default affinityServiceConfig.ini)\n");
+	printf("  -convert              convert ProcessLasso's ini's part to pattern that this would use\n");
+	printf("  -blacklist <file>     blacklist for find (default not work)\n");
+	printf("  -plfile <file>        UTF8 file contains single line string from behind prolasso's DefaultAffinitiesEx=\n");
+	printf("                        eg. ?steamwebhelper.exe,0,8-19,everything.exe,0,8-19\n");
+	printf("  -out <file>           output for convert (default output.ini)\n");
 	return 0;
 }
