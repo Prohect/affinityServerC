@@ -318,7 +318,7 @@ void cfg_from_prolasso(IN const char *file_path, OUT ProcessConfig **configs, OU
 int print_help() {
 	printf("Usage: affinityService [options]\n");
 	printf("Options:\n");
-	printf("  -affinity <integer>   affinity for itselt (eg. 0b11110000 or 0xFFFF or 254)\n");
+	printf("  -affinity <integer>   affinity for itself (eg. 0b11110000 or 0xFFFF or 254)\n");
 	printf("  -find                 find process with unset or default affinity?\n");
 	printf("  -console              use console ouput?\n");
 	printf("  -config <file>        config file(default config.ini)\n");
