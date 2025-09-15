@@ -9,11 +9,10 @@ rewrite affnity service using C. more light way
 
 - 设置自身 CPU 亲和掩码
 - 遍历系统进程，根据配置文件设置指定进程的 CPU 亲和
-- 如果有指定-find true，会找到亲和性为系统默认（全核心）的进程，并排除（如果指定了）黑名单然后输出
-- 支持 ProcessLasso 配置文件转换为本程序的配置格式
-- 支持日志记录（可选择输出到控制台，默认开启）
-- 支持自定义遍历间隔时间
-- 支持命令行参数控制所有功能
+- 如果有指定-find，会找到亲和性为系统默认（全核心）的进程，并排除（如果指定了）黑名单然后输出
+- 从 ProcessLasso 配置文件转换为本程序的配置格式
+- 日志记录（可选择输出到控制台，默认开启）
+- 自定义遍历间隔时间
 
 ---
 
@@ -21,15 +20,15 @@ rewrite affnity service using C. more light way
 
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
-| `-affinity <binary>` | 设置本程序自身的 CPU 亲和掩码，二进制字符串，eg.`0b00001111111100000000` | `0` |
-| `-console` | 在控制台输出日志而非文件, 不需要额外参数 | - |
-| `-find` | 寻找亲和性为系统默认（全核心）的进程, 不需要额外参数 | - |
-| `-plfile <file>` | 指定 ProcessLasso 配置文件（DefaultAffinitiesEx=行之后的部分） | `prolasso.ini` |
-| `-outfile <file>` | ProcessLasso 文件转换后的输出文件名 | `config.ini` |
+| `-affinity <nubmer>` | 设置本程序自身的 CPU 亲和掩码，数字字符串，eg.`0b11110000 or 0xFFFF or 254` | `0` |
+| `-console` | 在控制台输出日志而非文件 | - |
+| `-find` | 寻找亲和性为系统默认（全核心）的进程 | - |
+| `-plfile <file>` | 指定 ProcessLasso 配置文件的DefaultAffinitiesEx=行之后的部分，须为UTF-8 | `prolasso.ini` |
+| `-outfile <file>` | ProcessLasso 文件转换后的输出文件名 | `output.ini` |
 | `-blacklist <file>` | 指定-find的黑名单 | - |
 | `-convert` | 执行 ProcessLasso 文件转换并退出, 不需要额外参数 | - |
 | `-interval <ms>` | 遍历进程的停滞时间间隔（毫秒） | `10000` |
-| `-config <file>` | 指定本程序的配置文件 | `processAffinityServiceConfig.ini` |
+| `-config <file>` | 指定本程序的配置文件 | `config.ini` |
 | `-help` / `--help` / `/?` | 输出帮助信息 | - |
 
 ---
@@ -41,7 +40,7 @@ rewrite affnity service using C. more light way
 ### 1. 设置自身亲和
 
 ```bash
-affinityService.exe -affinity 0b0000_0000_0000_0000_1111_1111_0000_0000
+affinityService.exe -affinity 0b11110000
 ```
 
 > 二进制字符串表示 CPU 核心，低位开始对应核心编号，从cpu0开始，此处为8-15设定给本程序。
@@ -62,7 +61,7 @@ affinityService.exe -interval 5000 -console
 ### 3. 从 ProcessLasso 文件转换配置
 
 ```bash
-affinityService.exe -convert -plfile lasso.ini -outfile config.ini
+affinityService.exe -convert -plfile lasso.ini -outfile out.ini
 ```
 
 * 从 `lasso.ini` 中读取Process Lasso的配置片段
@@ -100,7 +99,7 @@ affinityService.exe -config processAffinityServiceConfig.ini
 
 ```txt
 # 文件示例: processAffinityServiceConfig.ini
-# 格式: 进程文件名,int32 CPU 亲和掩码
+# 格式: 进程文件名, CPU 亲和掩码
 steamwebhelper.exe,254
 everything.exe,65535
 ```
