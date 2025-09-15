@@ -22,7 +22,7 @@ const char *g_blk_file = NULL;
 SYSTEMTIME g_time;
 
 typedef struct {
-	char name[260];
+	char name[MAX_PATH];
 	unsigned long long affinity_mask; // NULLABLE in read, set affinity checks NULL
 } ProcessConfig;
 
@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
 	if (g_convert_mode) return convert_cfg(); // convert or service mode
 	if (!g_console_out) {			  // logger's file output stream
 		CreateDirectoryA("logs", NULL);
-		char log_file_name[260];
+		char log_file_name[MAX_PATH];
 		GetLocalTime(&g_time);
 		sprintf_s(log_file_name, sizeof(log_file_name), "logs\\%04d%02d%02d.log", g_time.wYear, g_time.wMonth, g_time.wDay);
 		g_logger = _fsopen(log_file_name, "a", _SH_DENYNO);
