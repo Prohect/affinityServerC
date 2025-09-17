@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
 										if (blk_count)
 											for (int j = 0; j < blk_count; ++j)
 												if (_stricmp(proc_name, blk[j].name) == 0) goto skip_log;
-										log_message("find PID %lu - %s: %llu", process.th32ProcessID, proc_name, current_mask);
+										log_message("find PID %-5lu - %s: %llu", process.th32ProcessID, proc_name, current_mask);
 									skip_log:;
 									}
 								}
@@ -167,7 +167,7 @@ static void set_affinity(unsigned long pid, unsigned long long affinity_mask, co
 		HANDLE h_proc = OpenProcess(PROCESS_SET_INFORMATION | PROCESS_QUERY_INFORMATION, FALSE, pid);
 		unsigned long long current_mask, system_mask;
 		if (h_proc) {
-			if (GetProcessAffinityMask(h_proc, &current_mask, &system_mask) && current_mask != affinity_mask && SetProcessAffinityMask(h_proc, affinity_mask)) log_message("PID %lu - %s: -> %llu", pid, process_name, affinity_mask);
+			if (GetProcessAffinityMask(h_proc, &current_mask, &system_mask) && current_mask != affinity_mask && SetProcessAffinityMask(h_proc, affinity_mask)) log_message("PID %-5lu - %s: -> %llu", pid, process_name, affinity_mask);
 			CloseHandle(h_proc);
 		}
 	}
