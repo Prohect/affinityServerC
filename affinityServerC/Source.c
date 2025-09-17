@@ -9,35 +9,35 @@
 #include <tlhelp32.h>
 #include <windows.h>
 
-FILE *g_logger = NULL;
-bool g_console_out = 0;
-bool g_convert_mode = 0;
-bool g_find_unset_affinity = 0;
-int g_interval = 10000;
-unsigned long long g_self_affinity = 0;
-const char *g_convert_in_file = "prolasso.ini";
-const char *g_convert_out_file = "output.ini";
-const char *g_cfg_file = "config.ini";
-const char *g_blk_file = NULL;
-SYSTEMTIME g_time;
+static FILE *g_logger = NULL;
+static bool g_console_out = 0;
+static bool g_convert_mode = 0;
+static bool g_find_unset_affinity = 0;
+static int g_interval = 10000;
+static unsigned long long g_self_affinity = 0;
+static const char *g_convert_in_file = "prolasso.ini";
+static const char *g_convert_out_file = "output.ini";
+static const char *g_cfg_file = "config.ini";
+static const char *g_blk_file = NULL;
+static SYSTEMTIME g_time;
 
 typedef struct {
 	char name[MAX_PATH];
-	unsigned long long affinity_mask; // NULLABLE in read, set affinity checks NULL
+	unsigned long long affinity_mask;
 } ProcessConfig;
 
-void log_message(const char *format, ...);
-int convert_cfg();
-BOOL is_admin();
-void set_affinity(unsigned long pid, unsigned long long affinity_mask, const char process_name[MAX_PATH]);
-unsigned long long parse_affinity_range(const char *range_str);
-void cfg_from_prolasso(IN const char *file_path, OUT ProcessConfig **configs, OUT int *count);
-int read_config(IN const char *file_path, OUT ProcessConfig **configs, OUT int *count);
-int print_help();
+static int log_message(const char *format, ...);
+static int log_message_flush(const char *format, ...);
+static int convert_cfg();
+static bool is_admin();
+static void set_affinity(unsigned long pid, unsigned long long affinity_mask, const char process_name[MAX_PATH]);
+static unsigned long long parse_affinity_range(const char *range_str);
+static void cfg_from_prolasso(IN const char *file_path, OUT ProcessConfig **configs, OUT int *count);
+static int read_config(IN const char *file_path, OUT ProcessConfig **configs, OUT int *count);
+static int print_help();
 
 int main(int argc, char *argv[]) {
-	// argc = 2;
-	// argv[1] = "-convert";
+	GetLocalTime(&g_time);
 	SetConsoleOutputCP(CP_UTF8);
 	SetConsoleCP(CP_UTF8);
 	setlocale(LC_ALL, ".UTF8");
@@ -70,13 +70,11 @@ int main(int argc, char *argv[]) {
 	if (!g_console_out) {			  // logger's file output stream
 		CreateDirectoryA("logs", NULL);
 		char log_file_name[MAX_PATH];
-		GetLocalTime(&g_time);
 		sprintf_s(log_file_name, sizeof(log_file_name), "logs\\%04d%02d%02d.log", g_time.wYear, g_time.wMonth, g_time.wDay);
 		g_logger = _fsopen(log_file_name, "a", _SH_DENYNO);
-		if (g_logger == NULL) {
+		if (!g_logger)
 			log_message("can't open log file");
-			g_console_out = 1;
-		} else {
+		else {
 			HWND h_wnd = GetConsoleWindow();
 			if (h_wnd) ShowWindow(h_wnd, SW_HIDE);
 		}
@@ -92,10 +90,7 @@ int main(int argc, char *argv[]) {
 	}
 	ProcessConfig *configs, *blk = NULL; // load blacklist for find unset affinity process and config
 	int config_count, blk_count = 0;
-	if (!read_config(g_cfg_file, &configs, &config_count)) {
-		log_message("no valid config, exiting");
-		return 0;
-	}
+	if (!read_config(g_cfg_file, &configs, &config_count)) return log_message_flush("no valid config, exiting");
 	if (g_blk_file) read_config(g_blk_file, &blk, &blk_count);
 	HANDLE processes_snapshot; // init variables for loop
 	PROCESSENTRY32W process;
@@ -122,7 +117,7 @@ int main(int argc, char *argv[]) {
 										if (blk_count)
 											for (int j = 0; j < blk_count; ++j)
 												if (_stricmp(proc_name, blk[j].name) == 0) goto skip_log;
-										log_message("%02d %02d:%02d:%02d find PID %lu - %s: %llu", g_time.wDay, g_time.wHour, g_time.wMinute, g_time.wSecond, process.th32ProcessID, proc_name, current_mask);
+										log_message("find PID %lu - %s: %llu", process.th32ProcessID, proc_name, current_mask);
 									skip_log:;
 									}
 								}
@@ -144,37 +139,42 @@ int main(int argc, char *argv[]) {
 	return 0;
 }
 
-void log_message(const char *format, ...) {
-	char buffer[8192];
+static int log_message(const char *format, ...) {
+	static char buf[8192] = "";
+	static char buffer[8192] = "";
 	va_list args;
 	va_start(args, format);
 	vsprintf_s(buffer, sizeof(buffer), format, args);
 	va_end(args);
-	if (g_logger)
-		fprintf_s(g_logger, "%s\n", buffer);
-	else
-		printf("%s\n", buffer);
+	if (!strcmp(buffer, buf)) {
+		strcpy_s(buf, sizeof(buf), buffer);
+		if (g_logger)
+			fprintf_s(g_logger, "[%02d %02d:%02d:%02d]%s\n", g_time.wDay, g_time.wHour, g_time.wMinute, g_time.wSecond, buffer);
+		else
+			printf("[%02d %02d:%02d:%02d]%s\n", g_time.wDay, g_time.wHour, g_time.wMinute, g_time.wSecond, buffer);
+	}
+	return 0;
 }
 
-void set_affinity(unsigned long pid, unsigned long long affinity_mask, const char process_name[MAX_PATH]) {
-	HANDLE h_proc = OpenProcess(PROCESS_SET_INFORMATION | PROCESS_QUERY_INFORMATION, FALSE, pid);
-	if (h_proc) {
+static int log_message_flush(const char *format, ...) {
+	log_message(format);
+	if (g_logger) fflush(g_logger);
+	return 0;
+}
+
+static void set_affinity(unsigned long pid, unsigned long long affinity_mask, const char process_name[MAX_PATH]) {
+	if (affinity_mask) {
+		HANDLE h_proc = OpenProcess(PROCESS_SET_INFORMATION | PROCESS_QUERY_INFORMATION, FALSE, pid);
 		unsigned long long current_mask, system_mask;
-		if (GetProcessAffinityMask(h_proc, &current_mask, &system_mask)) {
-			if (affinity_mask && current_mask != affinity_mask) {
-				if (SetProcessAffinityMask(h_proc, affinity_mask)) {
-					char log_msg[8192];
-					sprintf_s(log_msg, sizeof(log_msg), "%02d %02d:%02d:%02d - PID %lu - %s: -> %llu", g_time.wDay, g_time.wHour, g_time.wMinute, g_time.wSecond, pid, process_name, affinity_mask);
-					log_message(log_msg);
-				}
-			}
+		if (h_proc) {
+			if (GetProcessAffinityMask(h_proc, &current_mask, &system_mask) && current_mask != affinity_mask && SetProcessAffinityMask(h_proc, affinity_mask)) log_message("PID %lu - %s: -> %llu", pid, process_name, affinity_mask);
+			CloseHandle(h_proc);
 		}
-		CloseHandle(h_proc);
 	}
 }
 
-BOOL is_admin() {
-	BOOL is_elevated = 0;
+static bool is_admin() {
+	bool is_elevated = 0;
 	HANDLE token = NULL;
 	if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
 		TOKEN_ELEVATION elevation;
@@ -185,7 +185,7 @@ BOOL is_admin() {
 	return is_elevated;
 }
 
-int read_config(IN const char *file_path, OUT ProcessConfig **configs, OUT int *count) {
+static int read_config(IN const char *file_path, OUT ProcessConfig **configs, OUT int *count) {
 	FILE *f_path;
 	if (fopen_s(&f_path, file_path, "r") == 0) {
 		char line[8192];
@@ -224,7 +224,7 @@ int read_config(IN const char *file_path, OUT ProcessConfig **configs, OUT int *
 	}
 }
 
-unsigned long long parse_affinity_range(const char *range_str) {
+static unsigned long long parse_affinity_range(const char *range_str) {
 	char *affinity_token_buf = _strdup(range_str);
 	if (!affinity_token_buf) return 0;
 	unsigned long long mask = 0;
@@ -248,7 +248,7 @@ unsigned long long parse_affinity_range(const char *range_str) {
 	return mask;
 }
 
-int convert_cfg() {
+static int convert_cfg() {
 	ProcessConfig *configs = NULL;
 	int count = 0;
 	cfg_from_prolasso(g_convert_in_file, &configs, &count);
@@ -266,7 +266,7 @@ int convert_cfg() {
 	return 0;
 }
 
-void cfg_from_prolasso(IN const char *file_path, OUT ProcessConfig **configs, OUT int *count) {
+static void cfg_from_prolasso(IN const char *file_path, OUT ProcessConfig **configs, OUT int *count) {
 	FILE *fp;
 	if (fopen_s(&fp, file_path, "rb") == 0) {
 		_fseeki64(fp, 0, SEEK_END);
@@ -315,7 +315,7 @@ void cfg_from_prolasso(IN const char *file_path, OUT ProcessConfig **configs, OU
 	}
 }
 
-int print_help() {
+static int print_help() {
 	printf("Usage: affinityService [options]\n");
 	printf("Options:\n");
 	printf("  -affinity <integer>   affinity for itself (eg. 0b11110000 or 0xFFFF or 254)\n");
