@@ -146,7 +146,7 @@ static int log_message(const char *format, ...) {
 	va_start(args, format);
 	vsprintf_s(buffer, sizeof(buffer), format, args);
 	va_end(args);
-	if (!strcmp(buffer, buf)) {
+	if (!strcmp(buffer, buf) == 0) {
 		strcpy_s(buf, sizeof(buf), buffer);
 		if (g_logger)
 			fprintf_s(g_logger, "[%02d %02d:%02d:%02d]%s\n", g_time.wDay, g_time.wHour, g_time.wMinute, g_time.wSecond, buffer);
