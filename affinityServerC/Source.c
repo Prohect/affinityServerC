@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
 	SetConsoleCP(CP_UTF8);
 	setlocale(LC_ALL, ".UTF8");
 	for (int i = 1; i < argc; ++i) { // prase args
-		if (strcmp(argv[i], "-help") == 0 || strcmp(argv[i], "/?") == 0 || strcmp(argv[i], "--help") == 0) {
+		if (strcmp(argv[i], "-help") == 0 || strcmp(argv[i], "/?") == 0 || strcmp(argv[i], "-?") == 0 || strcmp(argv[i], "?") == 0 || strcmp(argv[i], "--help") == 0) {
 			return print_help();
 		} else if (strcmp(argv[i], "-affinity") == 0 && i + 1 < argc) {
 			char *bin_str = argv[++i];
